@@ -1,6 +1,8 @@
 import numpy as np
 from numpy.testing import assert_, assert_equal, assert_array_equal
 
+from hypothesis import example, given, strategies as st
+
 def buffer_length(arr):
     if isinstance(arr, str):
         if not arr:
@@ -360,3 +362,21 @@ class TestByteorder_1009_UCS4(ByteorderValues):
     """Check the byteorder in unicode (size 1009, UCS4 values)"""
     ulen = 1009
     ucs_value = ucs4_value
+
+
+############################################################
+#    Property-based tests
+############################################################
+
+class TestEncodingProperties:
+    """Check that all strings round-trip as expected."""
+    # This test found real bugs: see https://github.com/numpy/numpy/issues/15363
+
+    @example("\udd4a")  # code point not in range(0x110000)
+    @example("\ud82d")  # code point in surrogate code point range(0xd800, 0xe000)
+    @example("\ud800")  # AssertionError: assert '\\ud800' == '\u2400'
+    @given(st.text(st.characters()).map(lambda s: s.rstrip("\0")))
+    def test_unicode_arrays_round_trip(self, s):
+        arr = np.array([s])  # if we can construct an array like so...
+        s2 = arr[0]          # we should be able to access the element and
+        assert_equal(s, s2)  # it should equal the input (no trailing nulls)
