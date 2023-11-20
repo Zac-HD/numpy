@@ -138,6 +138,8 @@ jobs:
         python -m build --wheel --no-isolation --skip-dependency-check
         pip install dist/numpy*.whl
     - name: Run full test suite
+      env:
+        PYTHONWARNDEFAULTENCODING: "1"
       run: |
         cd tools
         pytest --pyargs numpy --cov-report=html:build/coverage
